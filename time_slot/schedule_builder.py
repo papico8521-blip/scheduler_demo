@@ -59,11 +59,26 @@ def _reserve_slots(schedule_state, assignment):
     ] = 1
 
 
-def create_schedule(reference, solve_list, worker_slot_master, machine_slot_master, seed):
+def create_schedule(
+    reference,
+    solve_list,
+    worker_slot_master,
+    machine_slot_master,
+    seed,
+    worker_setup_block_master=None,
+    machine_proc_block_master=None,
+):
     """ソルバー投入順に工程を割り当て、schedule_stateを生成する。"""
+    if worker_setup_block_master is None:
+        worker_setup_block_master = np.zeros_like(worker_slot_master)
+    if machine_proc_block_master is None:
+        machine_proc_block_master = np.zeros_like(machine_slot_master)
+
     schedule_state = {
         "worker_slots": worker_slot_master.copy(),
         "machine_slots": machine_slot_master.copy(),
+        "worker_setup_block": worker_setup_block_master,
+        "machine_proc_block": machine_proc_block_master,
         "assignments": {},
     }
     rng = np.random.default_rng(seed)
@@ -90,6 +105,8 @@ def create_schedule(reference, solve_list, worker_slot_master, machine_slot_mast
             process_time=process_time,
             earliest_start=earliest_start,
             rng=rng,
+            worker_setup_block=schedule_state["worker_setup_block"],
+            machine_proc_block=schedule_state["machine_proc_block"],
         )
 
         if result is None:
@@ -98,6 +115,17 @@ def create_schedule(reference, solve_list, worker_slot_master, machine_slot_mast
             )
 
         machine_id, worker_id, start_time = result
+        process_end_time = serach_time._find_process_end_time(
+            machine_slots=schedule_state["machine_slots"][machine_id],
+            machine_proc_block=schedule_state["machine_proc_block"][machine_id],
+            process_start=start_time + setup_time,
+            process_time=process_time,
+        )
+        if process_end_time is None:
+            raise RuntimeError(
+                f"procを割り当てられる空き時間がありません: {key}"
+            )
+
         assignment = {
             "order_id": order_id,
             "process_id": process_id,
@@ -106,7 +134,7 @@ def create_schedule(reference, solve_list, worker_slot_master, machine_slot_mast
             "worker_id": worker_id,
             "start_time": start_time,
             "setup_end_time": start_time + setup_time,
-            "end_time": start_time + setup_time + process_time,
+            "end_time": process_end_time,
             "setup_time": setup_time,
             "process_time": process_time,
             "release_time": earliest_start,

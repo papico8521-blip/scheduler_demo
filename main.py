@@ -17,7 +17,9 @@ def main(
         loop_count=10,
         visualize=False,
         real_time_gant=False,
-        stop_datas=[]
+        stop_datas=None,
+        setup_block=None,
+        proc_block=None,
         ):
 
     # -----------------------
@@ -70,6 +72,13 @@ def main(
     # ----------------------
     slot_maker = create_time_slot.SlotMaker(factory=factory, tasks=tasks)
     worker_slot_master, machine_slot_master = slot_maker.load(slot=1)
+    worker_setup_block_master, machine_proc_block_master = (
+        slot_maker.create_block_slots(
+            slot=1,
+            setup_block=setup_block,
+            proc_block=proc_block,
+        )
+    )
 
     # -----------------------
     # 強制停止区間挿入
@@ -120,6 +129,8 @@ def main(
             worker_slot_master=worker_slot_master,
             machine_slot_master=machine_slot_master,
             seed=i,
+            worker_setup_block_master=worker_setup_block_master,
+            machine_proc_block_master=machine_proc_block_master,
         )
         evaluation = evaluate_schedule.evaluate_schedule(schedule_state)
         schedule_state["evaluation"] = evaluation
@@ -179,15 +190,35 @@ if __name__ == "__main__":
 
     print("\n---サンプル処理開始---\n")
 
-    stop_datas = [(1,240,400),(2,1000,1300),(3,400,500)]
+    stop_datas = []
+ 
+    setup_block = []
+    start_time = 0
+    for i in range(12):
+        start_time += 3
+        setup_block.append((start_time * 60, (start_time + 1) * 60))
+        start_time += 5
+        setup_block.append((start_time * 60, (start_time + 16) * 60))
+        start_time += 16
+        
+    proc_block = []
+    # start_time = 0
+    # for i in range(3):
+    #     start_time += 3
+    #     proc_block.append((start_time * 60, (start_time + 1) * 60))
+    #     start_time += 5
+    #     proc_block.append((start_time * 60, (start_time + 16) * 60))
+    #     start_time += 16
 
     result = main(
             display = False,
             excel_output = True,
             visualize = True,
-            loop_count = 50,
+            loop_count = 1000,
             real_time_gant = False,
-            stop_datas=stop_datas
+            stop_datas=stop_datas,
+            setup_block=setup_block,
+            proc_block=proc_block,
             )
 
     output = excel_exchanger.DataChanger()

@@ -39,15 +39,15 @@ class DataChanger:
             s["生産数"]=result["orders"][s["受注ID"]]["生産数"]
             s["優先度"]=result["orders"][s["受注ID"]]["優先度"]
 
-        if result["stop_datas"]:
-            for s in result["stop_datas"]:
-                s = {
-                    "受注ID":"強制停止",
-                    "機械ID": s[0],
-                    "開始時間": s[1],
-                    "終了時間": s[2],
-                }
-                schedule_rows.append(s)
+        # if result["stop_datas"]:
+        #     for s in result["stop_datas"]:
+        #         s = {
+        #             "受注ID":"強制停止",
+        #             "機械ID": s[0],
+        #             "開始時間": s[1],
+        #             "終了時間": s[2],
+        #         }
+        #         schedule_rows.append(s)
 
         schedule_df = pd.DataFrame(schedule_rows)
         evaluation_df = pd.DataFrame([
@@ -57,6 +57,33 @@ class DataChanger:
                 "単位": "分",
             }
         ])
+
+        cols = ["start", "end"]
+        df_list = []
+        stop_machine_or_worker = False
+
+        if result["stop_datas"]:
+            stop_df = pd.DataFrame(result["stop_datas"])
+            stop_df.columns = ["id","start","end","stop"]
+            stop_machine_or_worker = True
+            df_list.append(stop_df)
+
+        if result["setup_block"]:
+            setup_df = pd.DataFrame(result["setup_block"])
+            setup_df.columns = cols
+            setup_df["stop"] = "setup"
+            df_list.append(setup_df)
+
+        if result["proc_block"]:
+            proc_df = pd.DataFrame(result["proc_block"])
+            proc_df.columns = cols
+            proc_df["stop"] = "proc"
+            df_list.append(proc_df)
+
+        if df_list:
+            block_df = pd.concat(df_list, ignore_index=True)
+        if stop_machine_or_worker:
+            block_df = block_df[["start","end","stop","id"]]
 
         try:
             with pd.ExcelWriter(path) as writer:
@@ -70,6 +97,12 @@ class DataChanger:
                     sheet_name="評価",
                     index=False,
                 )
+                block_df.to_excel(
+                    writer,
+                    sheet_name="稼働設定",
+                    index=False,
+                )
+
         except Exception as error:
             raise ValueError(
                 "スケジュール結果のエクスポートに失敗しました。"

@@ -20,6 +20,8 @@ def main(
         stop_datas=None,
         setup_block=None,
         proc_block=None,
+        cutting_shuffle=False,
+        prio_mix=True
         ):
 
     # -----------------------
@@ -27,8 +29,8 @@ def main(
     # -----------------------
 
     orders = order_setting.Orders(
-        count = 10,
-        product_count = 5,
+        count = 10,#10
+        product_count = 5,#5
         product_select="連続",
         priority = "連続",
     )
@@ -86,12 +88,21 @@ def main(
     
     if stop_datas:
         for stop in stop_datas:
-            machine_slot_master = slot_maker.add_stop_section(
-                index=stop[0],
-                slot=machine_slot_master,
-                start=stop[1],
-                end=stop[2]
-                )
+            match stop[3]:
+                case "worker":
+                    worker_slot_master = slot_maker.add_stop_section(
+                        index=stop[0],
+                        slot=worker_slot_master,
+                        start=stop[1],
+                        end=stop[2]
+                        )
+                case "machine":
+                    machine_slot_master = slot_maker.add_stop_section(
+                        index=stop[0],
+                        slot=machine_slot_master,
+                        start=stop[1],
+                        end=stop[2]
+                        )
 
     # ------------------------------------
     # ソルバー投入/探索用データ生成
@@ -118,9 +129,9 @@ def main(
         solve_list = data_shuffle.shuffle(
             solve_list,
             seed=i,
-            prio_mix=True,
+            prio_mix=prio_mix,
             n=0.5,
-            cutting_shuffle=True,
+            cutting_shuffle=cutting_shuffle,
             )
 
         schedule_state = schedule_builder.create_schedule(
@@ -182,43 +193,58 @@ def main(
         "schedule_results": schedule_results,
         "best_schedules": best_schedules,
         "orders": orders,
-        "stop_datas": stop_datas
+        "stop_datas": stop_datas,
+        "setup_block": setup_block,
+        "proc_block": proc_block
     }
 
+def stop_setup_generetor(num):
+    l = []
+    start_time = 0
+    for i in range(num):
+        start_time += 3
+        l.append((start_time * 60, (start_time + 1) * 60))
+        start_time += 5
+        l.append((start_time * 60, (start_time + 16) * 60))
+        start_time += 16
+    return l
+
+def stop_proc_generetor(num):
+    l = []
+    start_time = 0
+    for i in range(num):
+        start_time += 8
+        l.append((start_time * 60, (start_time + 5) * 60))
+        start_time += 16
+    return l
 
 if __name__ == "__main__":
 
     print("\n---サンプル処理開始---\n")
 
-    stop_datas = []
+    stop_datas = [
+        (2,0,480,"machine"),
+        (1, 120, 180, "machine"),
+        (1,2900,3200,"machine"),
+        (2,0,100,"worker"),
+        (3,1400, 1800,"worker")
+        ]
  
-    setup_block = []
-    start_time = 0
-    for i in range(12):
-        start_time += 3
-        setup_block.append((start_time * 60, (start_time + 1) * 60))
-        start_time += 5
-        setup_block.append((start_time * 60, (start_time + 16) * 60))
-        start_time += 16
-        
-    proc_block = []
-    # start_time = 0
-    # for i in range(3):
-    #     start_time += 3
-    #     proc_block.append((start_time * 60, (start_time + 1) * 60))
-    #     start_time += 5
-    #     proc_block.append((start_time * 60, (start_time + 16) * 60))
-    #     start_time += 16
+    setup_block = stop_setup_generetor(12)
+
+    proc_block = stop_proc_generetor(0)
 
     result = main(
             display = False,
             excel_output = True,
             visualize = True,
-            loop_count = 1000,
+            loop_count = 1000,#1000,
             real_time_gant = False,
             stop_datas=stop_datas,
             setup_block=setup_block,
             proc_block=proc_block,
+            cutting_shuffle=False,
+            prio_mix=True
             )
 
     output = excel_exchanger.DataChanger()

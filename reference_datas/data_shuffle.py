@@ -1,11 +1,15 @@
 import random
+import sys
 
-
-def _move_cutting_processes_to_front(datas):
+def _move_cutting_processes_to_front(datas, flag):
     """工程NO1をランダム化してリストの先頭へ移動する。"""
     cutting_processes = [data for data in datas if data[3] == 1]
     other_processes = [data for data in datas if data[3] != 1]
-    random.shuffle(cutting_processes)
+    if flag:
+        random.shuffle(cutting_processes)
+    #else:
+    #    cutting_processes = sorted(cutting_processes, key=lambda x: x[0])
+
     return cutting_processes + other_processes
 
 
@@ -125,8 +129,8 @@ def shuffle(datas, seed, prio_mix=True, n=0.5, cutting_shuffle=True):
             result.extend(priority_results[priority_index])
             priority_index += 1
 
-    if cutting_shuffle:
-        result = _move_cutting_processes_to_front(result)
+    #if cutting_shuffle:
+    result = _move_cutting_processes_to_front(result, cutting_shuffle)
 
     return result
 

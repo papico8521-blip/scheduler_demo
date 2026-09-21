@@ -12,6 +12,7 @@ class Orders:
     quantity:tuple = (100, 500, 20)
     work_diameter:tuple = (50, 100, 10)
     work_length:tuple = (30, 50, 5)
+    auto_split:bool = True
 
 class Generetor:
     def __init__(self, orders):

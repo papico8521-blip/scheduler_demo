@@ -1,5 +1,5 @@
 from setting import order_setting, factory_setting, task_setting
-from output_datas import excel_exchanger
+from output_datas import excel_exchanger, csv_exchanger
 from time_slot import create_time_slot
 from time_slot import schedule_builder
 from reference_datas import reference_datas, data_shuffle
@@ -21,7 +21,8 @@ def main(
         setup_block=None,
         proc_block=None,
         cutting_shuffle=False,
-        prio_mix=True
+        prio_mix=True,
+        csv_output=False,
         ):
 
     # -----------------------
@@ -120,7 +121,7 @@ def main(
     best_schedules = []
 
     real_time_visualizer = ScheduleVisualizer() if visualize else None
-
+    csv_generetor = csv_exchanger.DataChanger()
     for i in range(loop_count):
 
         # データシャッフル
@@ -179,6 +180,14 @@ def main(
                     comparison_schedule=schedule_state,
                     display=True,
                 )
+        if csv_output:
+            csv_generetor.save_to_csv(
+                i,
+                schedule_state["assignments"],
+                stop_datas,
+                setup_block,
+                proc_block
+                )
 
 
     end_time = time.perf_counter()
@@ -232,19 +241,20 @@ if __name__ == "__main__":
  
     setup_block = stop_setup_generetor(12)
 
-    proc_block = stop_proc_generetor(0)
+    proc_block = stop_proc_generetor(2)
 
     result = main(
             display = False,
             excel_output = True,
             visualize = True,
-            loop_count = 1000,#1000,
+            loop_count = 100,#1000,
             real_time_gant = False,
             stop_datas=stop_datas,
             setup_block=setup_block,
             proc_block=proc_block,
             cutting_shuffle=False,
-            prio_mix=True
+            prio_mix=True,
+            csv_output=True,
             )
 
     output = excel_exchanger.DataChanger()

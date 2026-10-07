@@ -1,0 +1,16 @@
+[project]
+name = "schedule-streamlit"
+version = "0.1.0"
+description = "Streamlit UI and SQLite extension for scheduling experiments"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "numpy>=2.5.3",
+    "pandas>=3.0.6",
+    "plotly>=7.1.0",
+    "streamlit>=1.65.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.20,<0.13.0"]
+build-backend = "uv_build"
